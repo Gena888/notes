@@ -169,3 +169,51 @@ let blob = new Blob(chunks);
 В итоге у нас есть результат (строки или Blob, смотря что удобно) и отслеживание прогресса получения.
 
 На всякий случай повторимся, что здесь мы рассмотрели, как отслеживать процесс получения данных с сервера, а не их отправки на сервер. Для отслеживания отправки у fetch пока нет способа.
+
+
+
+
+Как мы знаем, метод fetch возвращает промис. А в JavaScript в целом нет понятия «отмены» промиса. Как же прервать запрос fetch?
+
+Для таких целей существует специальный встроенный объект: AbortController, который можно использовать для отмены не только fetch, но и других асинхронных задач.
+
+  Использовать его достаточно просто:
+
+  Шаг 1: создаём контроллер:
+
+let controller = new AbortController();
+
+Контроллер controller – чрезвычайно простой объект.
+
+ - Он имеет единственный метод abort() и единственное свойство signal.
+ - При вызове abort():
+   1. генерируется событие с именем abort на объекте controller.signal
+   2. свойство controller.signal.aborted становится равным true.
+
+Все, кто хочет узнать о вызове abort(), ставят обработчики на controller.signal, чтобы отслеживать его.
+
+
+    let controller = new AbortController();
+    let signal = controller.signal;
+
+    // срабатывает при вызове controller.abort()
+    signal.addEventListener('abort', () => alert("отмена!"));
+
+    controller.abort(); // отмена!
+
+    alert(signal.aborted); // true
+
+  Шаг 2: передайте свойство signal опцией в метод fetch:
+
+      let controller = new AbortController();
+    fetch(url, {
+      signal: controller.signal
+    });
+
+Метод fetch умеет работать с AbortController, он слушает событие abort на signal.
+
+  Шаг 3: чтобы прервать выполнение fetch, вызовите controller.abort():
+
+  controller.abort();
+
+  Вот и всё: fetch получает событие из signal и прерывает запрос.
